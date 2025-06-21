@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terminal à Conteneurs - Port de Kribi</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a192f 0%, #172a45 100%);
+            min-height: 100vh;
+            color: #e6f1ff;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(23, 42, 69, 0.85);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        .header h1 {
+            color: #e6f1ff;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            color: #a8b2d1;
+            font-size: 1.1em;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .control-panel {
+            background: rgba(23, 42, 69, 0.85);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        .control-panel h2 {
+            color: #FFD700;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #FFD700;
+            padding-bottom: 10px;
+        }
+
+        .action-button {
+            width: 100%;
+            padding: 15px 20px;
+            margin: 10px 0;
+            background: linear-gradient(45deg, #1e3a8a, #3b82f6);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .action-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+        }
+
+        .action-button:active {
+            transform: translateY(0);
+        }
+
+        .action-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background: #FFD700;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .status-card {
+            background: rgba(23, 42, 69, 0.85);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            border-left: 5px solid #FFD700;
+        }
+
+        .status-card h3 {
+            color: #FFD700;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.4em;
+        }
+
+        .status-card .icon {
+            font-size: 1.5em;
+        }
+
+        .quai-item, .conteneur-item, .zone-item, .vehicule-item {
+            background: rgba(30, 58, 138, 0.4);
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 8px;
+            border-left: 4px solid #e74c3c;
+            transition: all 0.3s ease;
+        }
+
+        .quai-item.libre, .conteneur-item.libre, .vehicule-item.disponible {
+            border-left-color: #27ae60;
+        }
+
+        .quai-item.occupe, .conteneur-item.bloque, .vehicule-item.occupe {
+            border-left-color: #e74c3c;
+        }
+
+        .log-area {
+            background: rgba(23, 42, 69, 0.85);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            margin-top: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        .log-area h2 {
+            color: #FFD700;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #e74c3c;
+            padding-bottom: 10px;
+        }
+
+        .log-content {
+            background: #0d1b2a;
+            color: #e6f1ff;
+            padding: 20px;
+            border-radius: 12px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.4;
+            border: 1px solid rgba(255, 215, 0, 0.1);
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 5px 10px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .log-entry.success {
+            background: rgba(39, 174, 96, 0.15);
+            border-left: 3px solid #27ae60;
+        }
+
+        .log-entry.warning {
+            background: rgba(241, 196, 15, 0.15);
+            border-left: 3px solid #f1c40f;
+        }
+
+        .log-entry.error {
+            background: rgba(231, 76, 60, 0.15);
+            border-left: 3px solid #e74c3c;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: #0a192f;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+
+        .modal h3 {
+            color: #FFD700;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 1.5em;
+        }
+
+        select, input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            background: rgba(30, 58, 138, 0.4);
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            border-radius: 8px;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            color: #e6f1ff;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: #FFD700;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .confirm-btn {
+            background: linear-gradient(45deg, #27ae60, #2ecc71);
+            color: white;
+        }
+
+        .cancel-btn {
+            background: linear-gradient(45deg, #7f8c8d, #95a5a6);
+            color: white;
+        }
+
+        .confirm-btn:hover {
+            background: linear-gradient(45deg, #229954, #27ae60);
+        }
+
+        .cancel-btn:hover {
+            background: linear-gradient(45deg, #6c757d, #7f8c8d);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(45deg, #1e3a8a, #3b82f6);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+
+        .stat-card h4 {
+            font-size: 2em;
+            margin-bottom: 10px;
+            color: #FFD700;
+        }
+
+        .stat-card p {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .terminal-visual {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .terminal-visual-item {
+            background: rgba(23, 42, 69, 0.7);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        .terminal-visual-item h4 {
+            color: #FFD700;
+            margin-bottom: 10px;
+        }
+
+        .visual-bar {
+            height: 20px;
+            background: #1e3a8a;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .visual-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #FFD700, #FFA500);
+            transition: width 0.5s ease;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2.2em;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .container {
+                padding: 10px;
+            }
+            
+            .terminal-visual {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚢 Terminal à Conteneurs</h1>
+            <p>Système Expert de Gestion Logistique - Port Autonome de Kribi, Cameroun</p>
+        </div>
+
+        <div class="dashboard">
+            <div class="control-panel">
+                <h2>🎮 Panneau de Contrôle</h2>
+                <button class="action-button" onclick="showModal('attribuer-quai')">
+                    🚢 Attribuer un Quai
+                </button>
+                <button class="action-button" onclick="showModal('decharger-conteneur')">
+                    📦 Décharger Conteneur
+                </button>
+                <button class="action-button" onclick="showModal('empiler-conteneur')">
+                    🏗️ Empiler Conteneur
+                </button>
+                <button class="action-button" onclick="showModal('verifier-douane')">
+                    🛂 Vérifier Douane
+                </button>
+                <button class="action-button" onclick="showModal('charger-conteneur')">
+                    🚛 Charger pour Export
+                </button>
+                <button class="action-button" onclick="showModal('assigner-transport')">
+                    🚚 Transport Terrestre
+                </button>
+                <button class="action-button" onclick="afficherStatistiques()">
+                    📊 Statistiques
+                </button>
+                <button class="action-button" onclick="simulationComplete()">
+                    🎯 Simulation Complète
+                </button>
+            </div>
+
+            <div class="status-grid">
+                <div class="status-card">
+                    <h3><span class="icon">🛳️</span>Quais</h3>
+                    <div id="quais-status"></div>
+                </div>
+
+                <div class="status-card">
+                    <h3><span class="icon">📦</span>Conteneurs</h3>
+                    <div id="conteneurs-status"></div>
+                </div>
+
+                <div class="status-card">
+                    <h3><span class="icon">🏭</span>Zones de Stockage</h3>
+                    <div id="zones-status"></div>
+                </div>
+
+                <div class="status-card">
+                    <h3><span class="icon">🚛</span>Véhicules</h3>
+                    <div id="vehicules-status"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="terminal-visual">
+            <div class="terminal-visual-item">
+                <h4>Activité des quais</h4>
+                <div class="visual-bar">
+                    <div class="visual-fill" id="quai-activity" style="width: 30%;"></div>
+                </div>
+            </div>
+            <div class="terminal-visual-item">
+                <h4>Occupation des zones</h4>
+                <div class="visual-bar">
+                    <div class="visual-fill" id="zone-occupation" style="width: 40%;"></div>
+                </div>
+            </div>
+            <div class="terminal-visual-item">
+                <h4>Flux de conteneurs</h4>
+                <div class="visual-bar">
+                    <div class="visual-fill" id="container-flow" style="width: 50%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="log-area">
+            <h2>📋 Journal des Opérations</h2>
+            <div class="log-content" id="log-content"></div>
+        </div>
+
+        <div class="stats-grid" id="stats-grid" style="display: none;">
+            <div class="stat-card">
+                <h4 id="taux-occupation">0%</h4>
+                <p>Taux d'occupation des quais</p>
+            </div>
+            <div class="stat-card">
+                <h4 id="conteneurs-traites">0</h4>
+                <p>Conteneurs traités</p>
+            </div>
+            <div class="stat-card">
+                <h4 id="conteneurs-bloques">0</h4>
+                <p>Conteneurs bloqués</p>
+            </div>
+            <div class="stat-card">
+                <h4 id="vehicules-actifs">0</h4>
+                <p>Véhicules actifs</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-attribuer-quai" class="modal">
+        <div class="modal-content">
+            <h3>🚢 Attribuer un Quai</h3>
+            <select id="select-navire">
+                <option value="">Sélectionner un navire</option>
+            </select>
+            <div class="modal-buttons">
+                <button class="confirm-btn" onclick="attribuerQuai()">Confirmer</button>
+                <button class="cancel-btn" onclick="closeModal('attribuer-quai')">Annuler</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-decharger-conteneur" class="modal">
+        <div class="modal-content">
+            <h3>📦 Décharger Conteneur</h3>
+            <select id="select-conteneur-decharge">
+                <option value="">Sélectionner un conteneur</option>
+            </select>
+            <div class="modal-buttons">
+                <button class="confirm-btn" onclick="dechargerConteneur()">Confirmer</button>
+                <button class="cancel-btn" onclick="closeModal('decharger-conteneur')">Annuler</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-empiler-conteneur" class="modal">
+        <div class="modal-content">
+            <h3>🏗️ Empiler Conteneur</h3>
+            <select id="select-conteneur-empile">
+                <option value="">Sélectionner un conteneur</option>
+            </select>
+            <div class="modal-buttons">
+                <button class="confirm-btn" onclick="empilerConteneur()">Confirmer</button>
+                <button class="cancel-btn" onclick="closeModal('empiler-conteneur')">Annuler</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-verifier-douane" class="modal">
+        <div class="modal-content">
+            <h3>🛂 Vérifier Douane</h3>
+            <select id="select-conteneur-douane">
+                <option value="">Sélectionner un conteneur</option>
+            </select>
+            <div class="modal-buttons">
+                <button class="confirm-btn" onclick="verifierDouane()">Confirmer</button>
+                <button class="cancel-btn" onclick="closeModal('verifier-douane')">Annuler</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-charger-conteneur" class="modal">
+        <div class="modal-content">
+            <h3>🚛 Charger pour Export</h3>
+            <select id="select-navire-charge">
+                <option value="">Sélectionner un navire</option>
+            </select>
+            <select id="select-conteneur-charge">
+                <option value="">Sélectionner un conteneur</option>
+            </select>
+            <div class="modal-buttons">
+                <button class="confirm-btn" onclick="chargerConteneur()">Confirmer</button>
+                <button class="cancel-btn" onclick="closeModal('charger-conteneur')">Annuler</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-assigner-transport" class="modal">
+        <div class="modal-content">
+            <h3>🚚 Transport Terrestre</h3>
+            <select id="select-conteneur-transport">
+                <option value="">Sélectionner un conteneur</option>
+            </select>
+            <select id="select-transporteur">
+                <option value="">Sélectionner un transporteur</option>
+            </select>
+            <select id="select-porte">
+                <option value="Porte1">Porte 1</option>
+                <option value="Porte2">Porte 2</option>
+            </select>
+            <div class="modal-buttons">
+                <button class="confirm-btn" onclick="assignerTransport()">Confirmer</button>
+                <button class="cancel-btn" onclick="closeModal('assigner-transport')">Annuler</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Base de données simulée
+        let terminal = {
+            quais: [
+                { id: 1, statut: 'libre', longueur: 350, navire: null },
+                { id: 2, statut: 'libre', longueur: 300, navire: null },
+                { id: 3, statut: 'libre', longueur: 400, navire: null }
+            ],
+            navires: [
+                { nom: 'EverGreen', taille: 300, conteneurs: 3000, quai: null },
+                { nom: 'Maersk', taille: 250, conteneurs: 2000, quai: null },
+                { nom: 'CMA CGM', taille: 280, conteneurs: 2500, quai: null }
+            ],
+            conteneurs: [
+                { id: 101, navire: 'EverGreen', destination: 'Douala', type: 'standard', statut: 'a_bord', zone: null, douane: null, documents: { connaissement: true, declaration: true } },
+                { id: 102, navire: 'EverGreen', destination: 'Yaoundé', type: 'reefer', statut: 'a_bord', zone: null, douane: null, documents: { connaissement: false, declaration: true } },
+                { id: 103, navire: 'Maersk', destination: 'Garoua', type: 'standard', statut: 'a_bord', zone: null, douane: null, documents: { connaissement: true, declaration: true } },
+                { id: 104, navire: 'CMA CGM', destination: 'Douala', type: 'standard', statut: 'a_bord', zone: null, douane: null, documents: { connaissement: true, declaration: false } }
+            ],
+            zones: [
+                { nom: 'ZoneA', capacite: 1000, utilise: 0 },
+                { nom: 'ZoneB', capacite: 500, utilise: 0 }
+            ],
+            vehicules: [
+                { id: 'v1', type: 'tracteur', statut: 'disponible' },
+                { id: 'v2', type: 'agv', statut: 'disponible' },
+                { id: 'v3', type: 'tracteur', statut: 'disponible' }
+            ],
+            transporteurs: [
+                { id: 't1', type: 'camion', destination: 'Douala', capacite: 1, charge: 0 },
+                { id: 't2', type: 'train', destination: 'Yaoundé', capacite: 10, charge: 0 },
+                { id: 't3', type: 'camion', destination: 'Garoua', capacite: 1, charge: 0 }
+            ],
+            portes: [
+                { id: 'Porte1', file: 0 },
+                { id: 'Porte2', file: 0 }
+            ]
+        };
+
+        // Fonctions utilitaires
+        function log(message, type = 'info') {
+            const logContent = document.getElementById('log-content');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logContent.appendChild(entry);
+            logContent.scrollTop = logContent.scrollHeight;
+        }
+
+        function showModal(modalId) {
+            const modal = document.getElementById(`modal-${modalId}`);
+            modal.style.display = 'block';
+            
+            // Remplir les sélecteurs
+            if (modalId === 'attribuer-quai') {
+                populateNavireSelect();
+            } else if (modalId === 'decharger-conteneur') {
+                populateConteneurSelect('select-conteneur-decharge', 'a_bord');
+            } else if (modalId === 'empiler-conteneur') {
+                populateConteneurSelect('select-conteneur-empile', 'decharge');
+            } else if (modalId === 'verifier-douane') {
+                populateConteneurSelect('select-conteneur-douane', 'empile');
+            } else if (modalId === 'charger-conteneur') {
+                populateNavireSelect('select-navire-charge');
+                populateConteneurSelect('select-conteneur-charge', 'libre');
+            } else if (modalId === 'assigner-transport') {
+                populateConteneurSelect('select-conteneur-transport', 'libre');
+                populateTransporteurSelect();
+            }
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(`modal-${modalId}`);
+            modal.style.display = 'none';
+        }
+
+        function populateNavireSelect(selectId = 'select-navire') {
+            const select = document.getElementById(selectId);
+            select.innerHTML = '<option value="">Sélectionner un navire</option>';
+            terminal.navires.filter(n => !n.quai).forEach(navire => {
+                const option = document.createElement('option');
+                option.value = navire.nom;
+                option.textContent = `${navire.nom} (${navire.taille}m, ${navire.conteneurs} conteneurs)`;
+                select.appendChild(option);
+            });
+        }
+
+        function populateConteneurSelect(selectId, statut) {
+            const select = document.getElementById(selectId);
+            select.innerHTML = '<option value="">Sélectionner un conteneur</option>';
+            terminal.conteneurs.filter(c => c.statut === statut).forEach(conteneur => {
+                const option = document.createElement('option');
+                option.value = conteneur.id;
+                option.textContent = `${conteneur.id} (${conteneur.navire} → ${conteneur.destination}, ${conteneur.type})`;
+                select.appendChild(option);
+            });
+        }
+
+        function populateTransporteurSelect() {
+            const select = document.getElementById('select-transporteur');
+            select.innerHTML = '<option value="">Sélectionner un transporteur</option>';
+            terminal.transporteurs.forEach(transporteur => {
+                const option = document.createElement('option');
+                option.value = transporteur.id;
+                option.textContent = `${transporteur.id} (${transporteur.type} → ${transporteur.destination})`;
+                select.appendChild(option);
+            });
+        }
+
+        // Fonctions métier
+        function attribuerQuai() {
+            const navireNom = document.getElementById('select-navire').value;
+            if (!navireNom) {
+                log('Erreur: Aucun navire sélectionné', 'error');
+                return;
+            }
+
+            const navire = terminal.navires.find(n => n.nom === navireNom);
+            const quaiCompatible = terminal.quais.find(q => q.statut === 'libre' && q.longueur >= navire.taille);
+
+            if (quaiCompatible) {
+                quaiCompatible.statut = 'occupé';
+                quaiCompatible.navire = navire.nom;
+                navire.quai = quaiCompatible.id;
+                
+                log(`✅ Navire ${navire.nom} attribué au quai ${quaiCompatible.id}`, 'success');
+                updateDisplay();
+                closeModal('attribuer-quai');
+            } else {
+                log(`❌ Aucun quai compatible pour le navire ${navire.nom}`, 'error');
+            }
+        }
+
+        function dechargerConteneur() {
+            const conteneurId = parseInt(document.getElementById('select-conteneur-decharge').value);
+            if (!conteneurId) {
+                log('Erreur: Aucun conteneur sélectionné', 'error');
+                return;
+            }
+
+            const conteneur = terminal.conteneurs.find(c => c.id === conteneurId);
+            const navire = terminal.navires.find(n => n.nom === conteneur.navire);
+
+            if (!navire.quai) {
+                log(`❌ Le navire ${navire.nom} n'est pas à quai`, 'error');
+                return;
+            }
+
+            // Inspection simulée
+            const inspection = Math.random() < 0.9 ? 'conforme' : 'endommagé';
+            if (inspection === 'endommagé') {
+                log(`⚠️ Conteneur ${conteneur.id} endommagé lors de l'inspection`, 'warning');
+                return;
+            }
+
+            // Assignation d'un véhicule
+            const vehicule = terminal.vehicules.find(v => v.statut === 'disponible');
+            if (!vehicule) {
+                log(`❌ Aucun véhicule disponible pour le conteneur ${conteneur.id}`, 'error');
+                return;
+            }
+
+            // Sélection de la zone
+            const zone = terminal.zones.find(z => z.utilise < z.capacite);
+            if (!zone) {
+                log(`❌ Aucune zone de stockage disponible`, 'error');
+                return;
+            }
+
+            vehicule.statut = 'occupé';
+            conteneur.statut = 'decharge';
+            conteneur.zone = zone.nom;
+            zone.utilise++;
+
+            log(`✅ Conteneur ${conteneur.id} déchargé vers ${zone.nom} avec véhicule ${vehicule.id}`, 'success');
+            
+            // Libérer le véhicule après 2 secondes
+            setTimeout(() => {
+                vehicule.statut = 'disponible';
+                updateDisplay();
+            }, 2000);
+
+            updateDisplay();
+            closeModal('decharger-conteneur');
+        }
+
+        function empilerConteneur() {
+            const conteneurId = parseInt(document.getElementById('select-conteneur-empile').value);
+            if (!conteneurId) {
+                log('Erreur: Aucun conteneur sélectionné', 'error');
+                return;
+            }
+
+            const conteneur = terminal.conteneurs.find(c => c.id === conteneurId);
+            
+            // Logique d'empilage optimisée
+            let rangee, hauteur;
+            if (conteneur.type === 'reefer') {
+                rangee = 1; // Proche des prises électriques
+                log(`🔌 Conteneur réfrigéré: rangée avec prise électrique sélectionnée`, 'info');
+            } else {
+                rangee = conteneur.destination === 'Douala' ? 1 : 
+                        conteneur.destination === 'Yaoundé' ? 2 : 3;
+            }
+            
+            hauteur = Math.floor(Math.random() * 4) + 1; // Hauteur aléatoire 1-4
+            
+            const vehicule = terminal.vehicules.find(v => v.statut === 'disponible');
+            if (!vehicule) {
+                log(`❌ Aucun véhicule disponible pour l'empilage`, 'error');
+                return;
+            }
+
+            vehicule.statut = 'occupé';
+            conteneur.statut = 'empile';
+            conteneur.emplacement = { rangee, hauteur };
+
+            log(`✅ Conteneur ${conteneur.id} empilé en ${conteneur.zone}, Rangée ${rangee}, Hauteur ${hauteur} avec véhicule ${vehicule.id}`, 'success');
+            
+            setTimeout(() => {
+                vehicule.statut = 'disponible';
+                updateDisplay();
+            }, 2000);
+
+            updateDisplay();
+            closeModal('empiler-conteneur');
+        }
+
+        function verifierDouane() {
+            const conteneurId = parseInt(document.getElementById('select-conteneur-douane').value);
+            if (!conteneurId) {
+                log('Erreur: Aucun conteneur sélectionné', 'error');
+                return;
+            }
+
+            const conteneur = terminal.conteneurs.find(c => c.id === conteneurId);
+            const docs = conteneur.documents;
+
+            if (docs.connaissement && docs.declaration) {
+                conteneur.douane = 'libre';
+                conteneur.statut = 'libre';
+                log(`✅ Conteneur ${conteneur.id} approuvé par la douane`, 'success');
+            } else {
+                conteneur.douane = 'bloqué';
+                log(`❌ Conteneur ${conteneur.id} bloqué par la douane - Documents manquants`, 'error');
+                
+                // Simulation scan rayons X
+                setTimeout(() => {
+                    const scan = Math.random() < 0.5 ? 'suspect' : 'normal';
+                    if (scan === 'suspect') {
+                        log(`🔍 Scan conteneur ${conteneur.id}: Marchandises suspectes détectées!`, 'warning');
+                    } else {
+                        log(`🔍 Scan conteneur ${conteneur.id}: Rien à signaler`, 'info');
+                    }
+                }, 1000);
+            }
+
+            // Simulation paiement taxes
+            const taxes = Math.floor(Math.random() * 400) + 100;
+            log(`💰 Paiement des taxes pour conteneur ${conteneur.id}: ${taxes} FCFA`, 'info');
+
+            updateDisplay();
+            closeModal('verifier-douane');
+        }
+
+        function chargerConteneur() {
+            const navireNom = document.getElementById('select-navire-charge').value;
+            const conteneurId = parseInt(document.getElementById('select-conteneur-charge').value);
+            
+            if (!navireNom || !conteneurId) {
+                log('Erreur: Navire ou conteneur non sélectionné', 'error');
+                return;
+            }
+
+            const conteneur = terminal.conteneurs.find(c => c.id === conteneurId);
+            const navire = terminal.navires.find(n => n.nom === navireNom);
+
+            // Vérifications
+            if (conteneur.douane !== 'libre') {
+                log(`❌ Conteneur ${conteneur.id} non autorisé par la douane`, 'error');
+                return;
+            }
+
+            const vehicule = terminal.vehicules.find(v => v.statut === 'disponible');
+            if (!vehicule) {
+                log(`❌ Aucun véhicule disponible pour le chargement`, 'error');
+                return;
+            }
+
+            // Scellement
+            log(`🔒 Nouveau scellé posé sur conteneur ${conteneur.id}`, 'info');
+
+            // Position optimisée
+            const position = conteneur.type === 'reefer' ? 'avant' : 'centre';
+            
+            vehicule.statut = 'occupé';
+            conteneur.statut = 'charge';
+            conteneur.navire_export = navire.nom;
+            conteneur.position = position;
+
+            log(`✅ Conteneur ${conteneur.id} chargé sur ${navire.nom} en position ${position} avec véhicule ${vehicule.id}`, 'success');
+            
+            setTimeout(() => {
+                vehicule.statut = 'disponible';
+                updateDisplay();
+            }, 2000);
+
+            updateDisplay();
+            closeModal('charger-conteneur');
+        }
+
+        function assignerTransport() {
+            const conteneurId = parseInt(document.getElementById('select-conteneur-transport').value);
+            const transporteurId = document.getElementById('select-transporteur').value;
+            const porteId = document.getElementById('select-porte').value;
+            
+            if (!conteneurId || !transporteurId || !porteId) {
+                log('Erreur: Paramètres manquants', 'error');
+                return;
+            }
+
+            const conteneur = terminal.conteneurs.find(c => c.id === conteneurId);
+            const transporteur = terminal.transporteurs.find(t => t.id === transporteurId);
+            const porte = terminal.portes.find(p => p.id === porteId);
+
+            // Vérifications
+            if (conteneur.douane !== 'libre') {
+                log(`❌ Conteneur ${conteneur.id} non autorisé à sortir`, 'error');
+                return;
+            }
+
+            if (porte.file >= 5) {
+                log(`❌ File d'attente trop longue à la ${porteId}`, 'error');
+                return;
+            }
+
+            if (transporteur.charge >= transporteur.capacite) {
+                log(`❌ Transporteur ${transporteur.id} à capacité maximale`, 'error');
+                return;
+            }
+
+            // Vérification destination
+            if (conteneur.destination !== transporteur.destination) {
+                log(`❌ Destination incompatible: ${conteneur.destination} ≠ ${transporteur.destination}`, 'error');
+                return;
+            }
+
+            porte.file++;
+            transporteur.charge++;
+            conteneur.statut = 'transport';
+            conteneur.transporteur = transporteur.id;
+            conteneur.porte = porteId;
+
+            log(`✅ Conteneur ${conteneur.id} assigné au transporteur ${transporteur.id} via ${porteId}`, 'success');
+
+            // Simulation sortie après 3 secondes
+            setTimeout(() => {
+                porte.file--;
+                log(`🚚 Conteneur ${conteneur.id} sorti du terminal vers ${conteneur.destination}`, 'success');
+                updateDisplay();
+            }, 3000);
+
+            updateDisplay();
+            closeModal('assigner-transport');
+        }
+
+        function afficherStatistiques() {
+            const statsGrid = document.getElementById('stats-grid');
+            statsGrid.style.display = 'grid';
+
+            // Calculs statistiques
+            const quaisOccupes = terminal.quais.filter(q => q.statut === 'occupé').length;
+            const tauxOccupation = Math.round((quaisOccupes / terminal.quais.length) * 100);
+            
+            const conteneursTraites = terminal.conteneurs.filter(c => c.statut !== 'a_bord').length;
+            const conteneursBloques = terminal.conteneurs.filter(c => c.douane === 'bloqué').length;
+            const vehiculesActifs = terminal.vehicules.filter(v => v.statut === 'occupé').length;
+
+            document.getElementById('taux-occupation').textContent = `${tauxOccupation}%`;
+            document.getElementById('conteneurs-traites').textContent = conteneursTraites;
+            document.getElementById('conteneurs-bloques').textContent = conteneursBloques;
+            document.getElementById('vehicules-actifs').textContent = vehiculesActifs;
+
+            log(`📊 Statistiques affichées - Taux occupation: ${tauxOccupation}%`, 'info');
+        }
+
+        function simulationComplete() {
+            log('🎯 Démarrage de la simulation complète...', 'info');
+            
+            // Simulation séquentielle
+            setTimeout(() => {
+                // 1. Attribuer les navires aux quais
+                terminal.navires.forEach((navire, index) => {
+                    const quai = terminal.quais.find(q => q.statut === 'libre' && q.longueur >= navire.taille);
+                    if (quai) {
+                        quai.statut = 'occupé';
+                        quai.navire = navire.nom;
+                        navire.quai = quai.id;
+                        log(`🚢 Navire ${navire.nom} auto-attribué au quai ${quai.id}`, 'success');
+                    }
+                });
+                updateDisplay();
+            }, 1000);
+
+            setTimeout(() => {
+                // 2. Décharger tous les conteneurs
+                terminal.conteneurs.forEach((conteneur, index) => {
+                    if (conteneur.statut === 'a_bord') {
+                        const zone = terminal.zones.find(z => z.utilise < z.capacite);
+                        if (zone) {
+                            conteneur.statut = 'decharge';
+                            conteneur.zone = zone.nom;
+                            zone.utilise++;
+                            log(`📦 Conteneur ${conteneur.id} auto-déchargé vers ${zone.nom}`, 'success');
+                        }
+                    }
+                });
+                updateDisplay();
+            }, 3000);
+
+            setTimeout(() => {
+                // 3. Empiler les conteneurs
+                terminal.conteneurs.forEach(conteneur => {
+                    if (conteneur.statut === 'decharge') {
+                        conteneur.statut = 'empile';
+                        const rangee = conteneur.destination === 'Douala' ? 1 : 
+                                     conteneur.destination === 'Yaoundé' ? 2 : 3;
+                        conteneur.emplacement = { rangee, hauteur: Math.floor(Math.random() * 4) + 1 };
+                        log(`🏗️ Conteneur ${conteneur.id} auto-empilé`, 'success');
+                    }
+                });
+                updateDisplay();
+            }, 5000);
+
+            setTimeout(() => {
+                // 4. Traitement douanier
+                terminal.conteneurs.forEach(conteneur => {
+                    if (conteneur.statut === 'empile') {
+                        const docs = conteneur.documents;
+                        if (docs.connaissement && docs.declaration) {
+                            conteneur.douane = 'libre';
+                            conteneur.statut = 'libre';
+                            log(`✅ Conteneur ${conteneur.id} auto-approuvé par la douane`, 'success');
+                        } else {
+                            conteneur.douane = 'bloqué';
+                            log(`❌ Conteneur ${conteneur.id} auto-bloqué par la douane`, 'warning');
+                        }
+                    }
+                });
+                updateDisplay();
+            }, 7000);
+
+            setTimeout(() => {
+                // 5. Transport final
+                terminal.conteneurs.forEach(conteneur => {
+                    if (conteneur.douane === 'libre') {
+                        const transporteur = terminal.transporteurs.find(t => 
+                            t.destination === conteneur.destination && t.charge < t.capacite
+                        );
+                        if (transporteur) {
+                            transporteur.charge++;
+                            conteneur.statut = 'transport';
+                            conteneur.transporteur = transporteur.id;
+                            log(`🚚 Conteneur ${conteneur.id} auto-assigné au transport vers ${conteneur.destination}`, 'success');
+                        }
+                    }
+                });
+                updateDisplay();
+                afficherStatistiques();
+            }, 9000);
+
+            setTimeout(() => {
+                log('🎉 Simulation complète terminée avec succès!', 'success');
+            }, 10000);
+        }
+
+        function updateDisplay() {
+            // Mise à jour des quais
+            const quaisStatus = document.getElementById('quais-status');
+            quaisStatus.innerHTML = '';
+            terminal.quais.forEach(quai => {
+                const div = document.createElement('div');
+                div.className = `quai-item ${quai.statut}`;
+                div.innerHTML = `
+                    <strong>Quai ${quai.id}</strong><br>
+                    ${quai.statut.toUpperCase()} - ${quai.longueur}m
+                    ${quai.navire ? `<br>🚢 ${quai.navire}` : ''}
+                `;
+                quaisStatus.appendChild(div);
+            });
+
+            // Mise à jour des conteneurs
+            const conteneursStatus = document.getElementById('conteneurs-status');
+            conteneursStatus.innerHTML = '';
+            terminal.conteneurs.forEach(conteneur => {
+                const div = document.createElement('div');
+                div.className = `conteneur-item ${conteneur.douane || conteneur.statut}`;
+                div.innerHTML = `
+                    <strong>Container ${conteneur.id}</strong><br>
+                    ${conteneur.statut.toUpperCase()} - ${conteneur.type}
+                    <br>📍 ${conteneur.destination}
+                    ${conteneur.douane ? `<br>🛂 ${conteneur.douane}` : ''}
+                `;
+                conteneursStatus.appendChild(div);
+            });
+
+            // Mise à jour des zones
+            const zonesStatus = document.getElementById('zones-status');
+            zonesStatus.innerHTML = '';
+            terminal.zones.forEach(zone => {
+                const div = document.createElement('div');
+                div.className = 'zone-item';
+                const taux = Math.round((zone.utilise / zone.capacite) * 100);
+                div.innerHTML = `
+                    <strong>${zone.nom}</strong><br>
+                    ${zone.utilise}/${zone.capacite} (${taux}%)
+                    <div style="background: #0d1b2a; height: 8px; border-radius: 4px; margin-top: 5px;">
+                        <div style="background: ${taux > 80 ? '#e74c3c' : taux > 50 ? '#f39c12' : '#27ae60'}; 
+                                    height: 100%; width: ${taux}%; border-radius: 4px;"></div>
+                    </div>
+                `;
+                zonesStatus.appendChild(div);
+            });
+
+            // Mise à jour des véhicules
+            const vehiculesStatus = document.getElementById('vehicules-status');
+            vehiculesStatus.innerHTML = '';
+            terminal.vehicules.forEach(vehicule => {
+                const div = document.createElement('div');
+                div.className = `vehicule-item ${vehicule.statut}`;
+                div.innerHTML = `
+                    <strong>${vehicule.id}</strong> (${vehicule.type})<br>
+                    ${vehicule.statut === 'disponible' ? '✅' : '🔄'} ${vehicule.statut.toUpperCase()}
+                `;
+                vehiculesStatus.appendChild(div);
+            });
+
+            // Mise à jour des visualisations
+            const quaisOccupes = terminal.quais.filter(q => q.statut === 'occupé').length;
+            const tauxQuais = Math.round((quaisOccupes / terminal.quais.length) * 100);
+            document.getElementById('quai-activity').style.width = `${tauxQuais}%`;
+            
+            const totalCapacite = terminal.zones.reduce((sum, z) => sum + z.capacite, 0);
+            const totalUtilise = terminal.zones.reduce((sum, z) => sum + z.utilise, 0);
+            const tauxZones = Math.round((totalUtilise / totalCapacite) * 100);
+            document.getElementById('zone-occupation').style.width = `${tauxZones}%`;
+            
+            const conteneursTraites = terminal.conteneurs.filter(c => c.statut !== 'a_bord').length;
+            const tauxConteneurs = Math.round((conteneursTraites / terminal.conteneurs.length) * 100);
+            document.getElementById('container-flow').style.width = `${tauxConteneurs}%`;
+        }
+
+        // Fermeture des modals en cliquant à l'extérieur
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        }
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            log('🏭 Système Expert Terminal à Conteneurs - Port de Kribi initialisé', 'success');
+            log('📋 Base de données chargée: 3 quais, 4 conteneurs, 2 zones de stockage', 'info');
+            updateDisplay();
+        });
+    </script>
+</body>
+</html>
